@@ -10,17 +10,17 @@ type State = (Point, Point)
 type Path = [State]
 
 
-curveONE :: Curve
-curveONE = [(4,8), (7,10), (7,3)]
+curveSIX :: Curve
+curveSIX = [(11,14), (7,13), (5,11), (4,8), (5,4), (8,3), (11,4), (11,8), (8,9), (5,8)]
 
-curveSEVEN :: Curve
-curveSEVEN = [(5,10), (9,10), (6,3)]
+curveNINE :: Curve
+curveNINE = [(11,9), (8,8), (5,9), (5,13), (8,14), (11,13), (12,9), (11,6), (9,4), (5,3)]
 
-curveFIVE :: Curve
-curveFIVE = [(8,10), (4,10), (4,7), (8,7), (8,3), (4,3)]
+curveTHREE :: Curve
+curveTHREE = [(6,13), (10,14), (13,12), (13, 10), (6,9), (13,8), (13,6), (10,4), (6,5)]
 
 curveUNKNOWN :: Curve
-curveUNKNOWN = [(4,9), (7,10), (9,8), (8,3)]
+curveUNKNOWN = [(4,11), (6,12), (7,13), (9,14), (11,13), (12,11), (11,9), (9,7), (8,4), (5,4)]
 
 
 data FTree = Node State [FTree]
