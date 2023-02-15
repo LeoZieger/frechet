@@ -104,7 +104,6 @@ frechetMap c1 c2 = fst $ go M.empty l1 l2
 
     go :: Map (Int,Int) Float -> Int -> Int -> (Float, Map (Int,Int) Float)
     go m i j
-      | i < 0 || j < 0 = error $ show (i,j) ++ " negativ"
       | i == 0 && j == 0 = ((allDists !! i) !! j, m)
       | i >= 1 && j == 0 = case M.lookup (i,j) m of
                               Just x -> (x,m)
