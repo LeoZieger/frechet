@@ -1,10 +1,11 @@
 {-# OPTIONS_GHC -Wno-missing-export-lists #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 
 module Frechet where
 
 import Data.Map as M (insert, lookup, empty, Map)
+import Data.Array ( Ix(range), Array, (!), array )
 
 type Point = (Float, Float)
 type Curve = [Point]
@@ -118,3 +119,28 @@ frechetMap c1 c2 = fst $ go M.empty l1 l2
                                              d = (allDists !! i) !! j
                                              res = max d (minimum [f1,f2,f3])
                                          in (res, M.insert (i,j) res m3)
+
+
+
+frechetArr :: Curve -> Curve -> Float
+frechetArr c1 c2 = frechets ! (l1,l2)
+  where
+    l1 = length c1 -1
+    l2 = length c2 -1
+
+    allDists :: [[Float]]
+    allDists = [[dist p q | q <- c2] | p <- c1]
+
+    tabulate :: Ix i => (i -> e) -> (i,i) -> Array i e
+    tabulate f bounds = array bounds [ (x, f x) | x <- range bounds ]
+
+    frechets :: Array (Int,Int) Float
+    frechets = tabulate f ((0,0), (l1,l2))
+
+    f (i,j)
+      | i == 0 && j == 0 = (allDists !! i) !! j
+      | i >= 1 && j == 0 = max (frechets ! (i-1,j)) ((allDists !! i) !! j)
+      | i == 0 && j >= 0 = max (frechets ! (i,j-1)) ((allDists !! i) !! j)
+      | otherwise = max ((allDists !! i) !! j) (minimum [frechets ! (i-1,j),
+                                                         frechets ! (i-1,j-1),
+                                                         frechets ! (i,j-1)])
