@@ -4,6 +4,8 @@
 
 module Frechet where
 
+import Data.Map as M (insert, lookup, empty, Map)
+
 type Point = (Float, Float)
 type Curve = [Point]
 type State = (Point, Point)
@@ -80,3 +82,39 @@ frechetRec c1 c2 | length c1 == 1 && length c2 > 1 = max (dist pn qn) (frechetRe
         go _ [] = undefined
         go acc [x] = (acc, x)
         go acc (x:xs) = go (acc ++ [x]) xs
+
+
+
+frechetMap :: Curve -> Curve -> Float
+frechetMap c1 c2 = fst $ go M.empty l1 l2
+  where
+    l1 = length c1 -1
+    l2 = length c2 -1
+
+    allDists :: [[Float]]
+    allDists = [[dist p q | q <- c2] | p <- c1]
+
+    go :: Map (Int,Int) Float -> Int -> Int -> (Float, Map (Int,Int) Float)
+    go m i j
+      | i < 0 || j < 0 = error $ show (i,j) ++ " negativ"
+      | i == 0 && j == 0 = ((allDists !! i) !! j, m)
+      | i >= 1 && j == 0 = case M.lookup (i,j) m of
+                              Just x -> (x,m)
+                              Nothing -> let (f1,m1) = go m (i-1) j
+                                             d = (allDists !! i) !! j
+                                             res = max d f1
+                                         in (res, M.insert (i,j) res m1)
+      | i == 0 && j >= 1 = case M.lookup (i,j) m of
+                              Just x -> (x,m)
+                              Nothing -> let (f1,m1) = go m i (j-1)
+                                             d = (allDists !! i) !! j
+                                             res = max d f1
+                                         in (res, M.insert (i,j) res m1)
+      | otherwise = case M.lookup (i,j) m of
+                              Just x -> (x,m)
+                              Nothing -> let (f1,m1) = go m (i-1) j
+                                             (f2,m2) = go m1 (i-1) (j-1)
+                                             (f3,m3) = go m2 i (j-1)
+                                             d = (allDists !! i) !! j
+                                             res = max d (minimum [f1,f2,f3])
+                                         in (res, M.insert (i,j) res m3)
