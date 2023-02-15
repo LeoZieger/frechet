@@ -32,6 +32,18 @@ curveLong1 = take 600 $ zip [1..] [40..]
 curveLong2 :: Curve
 curveLong2 = take 600 $ zip [40..] [30..]
 
+curveLong3 :: Curve
+curveLong3 = take 1200 $ zip [1..] [40..]
+
+curveLong4 :: Curve
+curveLong4 = take 1200 $ zip [40..] [30..]
+
+curveLong5 :: Curve
+curveLong5 = take 1800 $ zip [1..] [40..]
+
+curveLong6 :: Curve
+curveLong6 = take 1800 $ zip [40..] [30..]
+
 
 data FTree = Node State [FTree]
             deriving (Eq, Show)
