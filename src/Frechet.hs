@@ -26,6 +26,13 @@ curveUNKNOWN :: Curve
 curveUNKNOWN = [(4,11), (6,12), (7,13), (9,14), (11,13), (12,11), (11,9), (9,7), (8,4), (5,4)]
 
 
+curveLong1 :: Curve
+curveLong1 = take 600 $ zip [1..] [40..]
+
+curveLong2 :: Curve
+curveLong2 = take 600 $ zip [40..] [30..]
+
+
 data FTree = Node State [FTree]
             deriving (Eq, Show)
 
