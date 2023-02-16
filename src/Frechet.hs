@@ -6,6 +6,7 @@ module Frechet where
 
 import Data.Map as M (insert, lookup, empty, Map)
 import Data.Array ( Ix(range), Array, (!), array )
+import Utils (apply)
 
 type Point = (Float, Float)
 type Curve = [Point]
@@ -162,3 +163,49 @@ frechetArr c1 c2 = frechets ! (l1,l2)
       | otherwise = max ((allDists !! i) !! j) (minimum [frechets ! (i-1,j),
                                                          frechets ! (i-1,j-1),
                                                          frechets ! (i,j-1)])
+
+
+
+frechetList :: Curve -> Curve -> Float
+frechetList c1 c2 = extract (l1,l2) $ apply (max l1 l2) replaceScan initialList
+  where
+    l1 = length c1 -1
+    l2 = length c2 -1
+
+    initialList :: [((Int,Int), Float)]
+    initialList = let f0 = head (head allDists)
+                  in up (0,1) f0 ++ [((0,0), head (head allDists))] ++ right (1,0) f0
+
+    up :: (Int,Int) -> Float -> [((Int,Int), Float)]
+    up (i,j) f0 = let f = max f0 ((allDists !! i) !! j)
+                  in if j <= l2 then up (i,j+1) f ++ [((i,j), f)] else []
+
+    right :: (Int,Int) -> Float -> [((Int,Int), Float)]
+    right (i,j) f0 = let f = max f0 ((allDists !! i) !! j)
+                     in if i <= l1 then ((i,j), f) : right (i+1,j) f else []
+
+
+    replaceScan :: [((Int,Int), Float)] -> [((Int,Int), Float)]
+    replaceScan [a,b] = [a,b]
+    replaceScan (a:b:c:ts) = let (t1, _) = a
+                                 (t2, _) = b
+                                 (t3, _) = c
+                                 t = calculateFrechet a b c
+                             in if areTriangle t1 t2 t3
+                                  then a : replaceScan (t:c:ts)
+                                  else a : replaceScan (b:c:ts)
+
+    areTriangle :: (Int,Int) -> (Int,Int) -> (Int,Int) -> Bool
+    areTriangle (x1,y1) (x2,y2) (x3,y3) = (x1 == x2) && (x3 == x2 + 1) &&
+                                          (y1 == y2 + 1) && (y3 == y2)
+
+    calculateFrechet :: ((Int,Int), Float) -> ((Int,Int), Float) -> ((Int,Int), Float) -> ((Int,Int), Float)
+    calculateFrechet (_, f1) ((i,j), f2) (_, f3) = ((i+1,j+1), max ((allDists !! i) !! j)
+                                                                    (minimum [f1,f2,f3]))
+
+    allDists :: [[Float]]
+    allDists = [[dist p q | q <- c2] | p <- c1]
+
+    extract :: (Int,Int) -> [((Int,Int), Float)] -> Float
+    extract _ [] = error "Cant find entry!"
+    extract i ((i', f):ts) = if i == i' then f else extract i ts
