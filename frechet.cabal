@@ -30,4 +30,5 @@ executable frechet
                        -Wmissing-home-modules
                        -Wpartial-fields
                        -Wredundant-constraints
-  other-modules:       Frechet
+  other-modules:       Frechet,
+                       Utils
