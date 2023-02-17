@@ -5,7 +5,7 @@
 module Frechet where
 
 import Data.Map as M (insert, lookup, empty, Map)
-import Data.Array ( Ix(range), Array, (!), array )
+import Data.Array ( Ix(range), Array, (!), array, listArray)
 import Utils (apply)
 
 type Point = (Float, Float)
@@ -112,22 +112,22 @@ frechetMap c1 c2 = fst $ go M.empty l1 l2
     l1 = length c1 -1
     l2 = length c2 -1
 
-    allDists :: [[Float]]
-    allDists = [[dist p q | q <- c2] | p <- c1]
+    c1A = listArray (0,l1) c1
+    c2A = listArray (0,l2) c2
 
     go :: Map (Int,Int) Float -> Int -> Int -> (Float, Map (Int,Int) Float)
     go m i j
-      | i == 0 && j == 0 = ((allDists !! i) !! j, m)
+      | i == 0 && j == 0 = (dist (c1A ! i) (c2A ! j), m)
       | i >= 1 && j == 0 = case M.lookup (i,j) m of
                               Just x -> (x,m)
                               Nothing -> let (f1,m1) = go m (i-1) j
-                                             d = (allDists !! i) !! j
+                                             d = dist (c1A ! i) (c2A ! j)
                                              res = max d f1
                                          in (res, M.insert (i,j) res m1)
       | i == 0 && j >= 1 = case M.lookup (i,j) m of
                               Just x -> (x,m)
                               Nothing -> let (f1,m1) = go m i (j-1)
-                                             d = (allDists !! i) !! j
+                                             d = dist (c1A ! i) (c2A ! j)
                                              res = max d f1
                                          in (res, M.insert (i,j) res m1)
       | otherwise = case M.lookup (i,j) m of
@@ -135,7 +135,7 @@ frechetMap c1 c2 = fst $ go M.empty l1 l2
                               Nothing -> let (f1,m1) = go m (i-1) j
                                              (f2,m2) = go m1 (i-1) (j-1)
                                              (f3,m3) = go m2 i (j-1)
-                                             d = (allDists !! i) !! j
+                                             d = dist (c1A ! i) (c2A ! j)
                                              res = max d (minimum [f1,f2,f3])
                                          in (res, M.insert (i,j) res m3)
 
@@ -147,8 +147,8 @@ frechetArr c1 c2 = frechets ! (l1,l2)
     l1 = length c1 -1
     l2 = length c2 -1
 
-    allDists :: [[Float]]
-    allDists = [[dist p q | q <- c2] | p <- c1]
+    c1A = listArray (0,l1) c1
+    c2A = listArray (0,l2) c2
 
     tabulate :: Ix i => (i -> e) -> (i,i) -> Array i e
     tabulate f bounds = array bounds [ (x, f x) | x <- range bounds ]
@@ -157,55 +157,56 @@ frechetArr c1 c2 = frechets ! (l1,l2)
     frechets = tabulate f ((0,0), (l1,l2))
 
     f (i,j)
-      | i == 0 && j == 0 = (allDists !! i) !! j
-      | i >= 1 && j == 0 = max (frechets ! (i-1,j)) ((allDists !! i) !! j)
-      | i == 0 && j >= 0 = max (frechets ! (i,j-1)) ((allDists !! i) !! j)
-      | otherwise = max ((allDists !! i) !! j) (minimum [frechets ! (i-1,j),
+      | i == 0 && j == 0 = dist (c1A ! i) (c2A ! j)
+      | i >= 1 && j == 0 = max (frechets ! (i-1,j)) (dist (c1A ! i) (c2A ! j))
+      | i == 0 && j >= 0 = max (frechets ! (i,j-1)) (dist (c1A ! i) (c2A ! j))
+      | otherwise = max (dist (c1A ! i) (c2A ! j)) (minimum [frechets ! (i-1,j),
                                                          frechets ! (i-1,j-1),
                                                          frechets ! (i,j-1)])
 
 
 
 frechetList :: Curve -> Curve -> Float
-frechetList c1 c2 = extract (l1,l2) $ apply (max l1 l2) replaceScan initialList
+frechetList c1 c2 = snd $ last $ apply li replaceScan initialList
   where
-    l1 = length c1 -1
-    l2 = length c2 -1
+    li = length c1 -1
+    lj = length c2 -1
+
+    c1A = listArray (0,li) c1
+    c2A = listArray (0,lj) c2
 
     initialList :: [((Int,Int), Float)]
-    initialList = let f0 = head (head allDists)
-                  in up (0,1) f0 ++ [((0,0), head (head allDists))] ++ right (1,0) f0
+    initialList = let f0 = dist (c1A ! 0) (c2A ! 0)
+                  in up (0,1) f0 ++ [((0,0), f0)] ++ right (1,0) f0
 
     up :: (Int,Int) -> Float -> [((Int,Int), Float)]
-    up (i,j) f0 = let f = max f0 ((allDists !! i) !! j)
-                  in if j <= l2 then up (i,j+1) f ++ [((i,j), f)] else []
+    up (i,j) f0 = let f = max f0 (dist (c1A ! i) (c2A ! j))
+                  in if j <= lj then up (i,j+1) f ++ [((i,j), f)] else []
 
     right :: (Int,Int) -> Float -> [((Int,Int), Float)]
-    right (i,j) f0 = let f = max f0 ((allDists !! i) !! j)
-                     in if i <= l1 then ((i,j), f) : right (i+1,j) f else []
+    right (i,j) f0 = let f = max f0 (dist (c1A ! i) (c2A ! j))
+                     in if i <= li then ((i,j), f) : right (i+1,j) f else []
 
 
     replaceScan :: [((Int,Int), Float)] -> [((Int,Int), Float)]
     replaceScan [a,b] = [a,b]
-    replaceScan (a:b:c:ts) = let (t1, _) = a
-                                 (t2, _) = b
-                                 (t3, _) = c
-                                 t = calculateFrechet a b c
+    replaceScan [a,b,c] = let (t1, f1) = a
+                              (t2, f2) = b
+                              (t3, f3) = c
+                              (i,j) = (fst t2 +1, snd t2 +1)
+                              f = max (dist (c1A ! i) (c2A ! j)) (minimum [f1,f2,f3])
+                          in if areTriangle t1 t2 t3
+                              then [a,((i,j), f)]
+                              else [a,b,c]
+    replaceScan (a:b:c:ts) = let (t1, f1) = a
+                                 (t2, f2) = b
+                                 (t3, f3) = c
+                                 (i,j) = (fst t2 +1, snd t2 +1)
+                                 f = max (dist (c1A ! i) (c2A ! j)) (minimum [f1,f2,f3])
                              in if areTriangle t1 t2 t3
-                                  then a : replaceScan (t:c:ts)
+                                  then a : replaceScan (((i,j),f) : c : ts)
                                   else a : replaceScan (b:c:ts)
 
     areTriangle :: (Int,Int) -> (Int,Int) -> (Int,Int) -> Bool
     areTriangle (x1,y1) (x2,y2) (x3,y3) = (x1 == x2) && (x3 == x2 + 1) &&
                                           (y1 == y2 + 1) && (y3 == y2)
-
-    calculateFrechet :: ((Int,Int), Float) -> ((Int,Int), Float) -> ((Int,Int), Float) -> ((Int,Int), Float)
-    calculateFrechet (_, f1) ((i,j), f2) (_, f3) = ((i+1,j+1), max ((allDists !! i) !! j)
-                                                                    (minimum [f1,f2,f3]))
-
-    allDists :: [[Float]]
-    allDists = [[dist p q | q <- c2] | p <- c1]
-
-    extract :: (Int,Int) -> [((Int,Int), Float)] -> Float
-    extract _ [] = error "Cant find entry!"
-    extract i ((i', f):ts) = if i == i' then f else extract i ts
