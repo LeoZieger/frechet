@@ -167,7 +167,7 @@ frechetArr c1 c2 = frechets ! (l1,l2)
 
 
 frechetList :: Curve -> Curve -> Float
-frechetList c1 c2 = snd $ last $ apply li replaceScan initialList
+frechetList c1 c2 = snd $ last $ apply lj (tripleScan . addUpperElement) initialList
   where
     li = length c1 -1
     lj = length c2 -1
@@ -176,37 +176,24 @@ frechetList c1 c2 = snd $ last $ apply li replaceScan initialList
     c2A = listArray (0,lj) c2
 
     initialList :: [((Int,Int), Float)]
-    initialList = let f0 = dist (c1A ! 0) (c2A ! 0)
-                  in up (0,1) f0 ++ [((0,0), f0)] ++ right (1,0) f0
+    initialList = go (0,0) (dist (c1A ! 0) (c2A ! 0))
+      where
+        go (i,j) f0 = let f = max f0 (dist (c1A ! i) (c2A ! j))
+                      in if i <= li then ((i,j), f) : go (i+1,j) f else []
 
-    up :: (Int,Int) -> Float -> [((Int,Int), Float)]
-    up (i,j) f0 = let f = max f0 (dist (c1A ! i) (c2A ! j))
-                  in if j <= lj then up (i,j+1) f ++ [((i,j), f)] else []
+    addUpperElement :: [((Int,Int), Float)] -> [((Int,Int), Float)]
+    addUpperElement (((i,j), f):xs) = let (i', j') = (i, j+1)
+                                          f' = max f (dist (c1A ! i') (c2A ! j'))
+                                      in ((i', j'), f') : (((i,j), f) : xs)
 
-    right :: (Int,Int) -> Float -> [((Int,Int), Float)]
-    right (i,j) f0 = let f = max f0 (dist (c1A ! i) (c2A ! j))
-                     in if i <= li then ((i,j), f) : right (i+1,j) f else []
-
-
-    replaceScan :: [((Int,Int), Float)] -> [((Int,Int), Float)]
-    replaceScan [a,b] = [a,b]
-    replaceScan [a,b,c] = let (t1, f1) = a
-                              (t2, f2) = b
-                              (t3, f3) = c
-                              (i,j) = (fst t2 +1, snd t2 +1)
-                              f = max (dist (c1A ! i) (c2A ! j)) (minimum [f1,f2,f3])
-                          in if areTriangle t1 t2 t3
-                              then [a,((i,j), f)]
-                              else [a,b,c]
-    replaceScan (a:b:c:ts) = let (t1, f1) = a
-                                 (t2, f2) = b
-                                 (t3, f3) = c
-                                 (i,j) = (fst t2 +1, snd t2 +1)
-                                 f = max (dist (c1A ! i) (c2A ! j)) (minimum [f1,f2,f3])
-                             in if areTriangle t1 t2 t3
-                                  then a : replaceScan (((i,j),f) : c : ts)
-                                  else a : replaceScan (b:c:ts)
-
-    areTriangle :: (Int,Int) -> (Int,Int) -> (Int,Int) -> Bool
-    areTriangle (x1,y1) (x2,y2) (x3,y3) = (x1 == x2) && (x3 == x2 + 1) &&
-                                          (y1 == y2 + 1) && (y3 == y2)
+    tripleScan :: [((Int,Int), Float)] -> [((Int,Int), Float)]
+    tripleScan [] = []
+    tripleScan [a,_] = [a]
+    tripleScan (a:b:c:ts) = let ((i,j), f1) = a
+                                (_, f2) = c
+                                (_, f3) = b
+                                (i',j') = (i+1,j)
+                                d = dist (c1A ! i') (c2A ! j')
+                                f' = max d (minimum [f1,f2,f3])
+                                t' = ((i', j'),f')
+                            in a : tripleScan (t':c:ts)
