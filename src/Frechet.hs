@@ -6,7 +6,6 @@ module Frechet where
 
 import Data.Map as M (insert, lookup, empty, Map)
 import Data.Array ( Ix(range), Array, (!), array, listArray)
-import Utils (apply)
 
 type Point = (Float, Float)
 type Curve = [Point]
@@ -197,3 +196,7 @@ frechetList c1 c2 = snd $ last $ apply lj (tripleScan . addUpperElement) initial
                                 f' = max d (minimum [f1,f2,f3])
                                 t' = ((i', j'),f')
                             in a : tripleScan (t':c:ts)
+
+    apply :: Int -> (a -> a) -> a -> a
+    apply 0 _ acc = acc
+    apply n f acc = apply (n-1) f (f acc)
