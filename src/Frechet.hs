@@ -87,10 +87,10 @@ frechetTree c1 c2 = minCost $ allPaths (mkFTree c1 c2)
 frechetRec :: Curve -> Curve -> Float
 frechetRec [p] [q] = dist p q
 frechetRec c1 c2 | length c1 == 1 && length c2 > 1 = max (dist pn qn) (frechetRec c1 qr)
-                     | length c1 > 1 && length c2 == 1 = max (dist pn qn) (frechetRec pr c2)
-                     | length c1 > 1 && length c2 > 1 = max (dist pn qn) (minimum [frechetRec pr c2,
-                                                                                   frechetRec pr qr,
-                                                                                   frechetRec c1 qr])
+                 | length c1 > 1 && length c2 == 1 = max (dist pn qn) (frechetRec pr c2)
+                 | length c1 > 1 && length c2 > 1 = max (dist pn qn) (minimum [frechetRec pr c2,
+                                                                               frechetRec pr qr,
+                                                                               frechetRec c1 qr])
   where
     (pr,pn) = partitionLast c1
     (qr,qn) = partitionLast c2
